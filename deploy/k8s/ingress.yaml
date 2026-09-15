@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shopflow
+  namespace: shopflow
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: shopflow.local
+      http:
+        paths:
+          - path: /products(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: products
+                port:
+                  number: 8000
+          - path: /orders(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: orders
+                port:
+                  number: 8000

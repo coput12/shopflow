@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  IMAGE_REGISTRY: ghcr.io
+  IMAGE_ORG: ${{ github.repository_owner }}
+
+jobs:
+  lint-and-test:
+    name: Lint & test
+    runs-on: ubuntu-latest
+    services:
+      products-redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+    strategy:
+      matrix:
+        service: [products, orders]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: app/${{ matrix.service }}/requirements.txt
+
+      - name: Install dependencies
+        working-directory: app/${{ matrix.service }}
+        run: pip install -r requirements.txt
+
+      - name: Test
+        working-directory: app/${{ matrix.service }}
+        run: pytest -v
+
+  build-images:
+    name: Build & push images
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        service: [products, orders, worker]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/shopflow-${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=sha-
+            type=semver,pattern={{version}}
+          flavor: latest=auto
+
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: app/${{ matrix.service }}
+          push: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -1,0 +1,43 @@
+groups:
+  - name: shopflow
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance {{ $labels.instance }} down"
+          description: "{{ $labels.job }} has been down for more than a minute."
+
+      - alert: HighRequestLatency
+        expr: |
+          histogram_quantile(0.95, sum(
+            rate(http_request_duration_seconds_bucket[5m])
+          ) by (le, job)) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High latency on {{ $labels.job }}"
+          description: "p95 latency exceeds 1s for the last 5 minutes."
+
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m])) by (job)
+            / sum(rate(http_requests_total[5m])) by (job) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Error rate > 5% on {{ $labels.job }}"
+          description: "{{ $labels.job }} has an error rate above 5% for 5 minutes."
+
+      - alert: HighWorkerQueue
+        expr: rabbitmq_queue_messages_ready > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RabbitMQ queue {{ $labels.name }} is growing"
+          description: "Queue has more than 1000 ready messages for 10 minutes."

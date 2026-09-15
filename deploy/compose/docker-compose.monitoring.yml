@@ -1,0 +1,59 @@
+name: shopflow-monitoring
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    volumes:
+      - ./prometheus/prometheus.compose.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "9093:9093"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-shopflow}:${POSTGRES_PASSWORD:-shopflow}@postgres:5432/shopflow?sslmode=disable"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+  grafana_data:

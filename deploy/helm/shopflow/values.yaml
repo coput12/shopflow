@@ -1,0 +1,53 @@
+replicaCount: 2
+
+image:
+  registry: ghcr.io
+  org: your_github_username
+  tag: latest
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 8000
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 60
+  targetMemoryUtilizationPercentage: 80
+
+ingress:
+  enabled: true
+  className: nginx
+  host: shopflow.local
+  pathType: ImplementationSpecific
+
+config:
+  productsDatabaseUrl: "postgresql://shopflow:CHANGE_ME@postgres:5432/shopflow"
+  ordersDatabaseUrl: "postgresql://shopflow:CHANGE_ME@postgres:5432/shopflow_orders"
+  productsRedisUrl: "redis://redis:6379/0"
+  workerRedisUrl: "redis://redis:6379/1"
+  rabbitmqUrl: "amqp://guest:guest@rabbitmq:5672/"
+
+services:
+  products:
+    enabled: true
+  orders:
+    enabled: true
+  worker:
+    enabled: true
+
+serviceAccounts:
+  create: false

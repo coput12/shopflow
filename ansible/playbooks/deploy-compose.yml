@@ -1,0 +1,42 @@
+---
+# Деплой приложения docker-compose'ом.
+# Перед запуском: скопируй deploy/.env на VM или отдай через ansible-vault.
+- name: Deploy ShopFlow with docker compose
+  hosts: shopflow
+  become: false
+  gather_facts: false
+
+  vars:
+    repo_url: "git@github.com:your_github_username/shopflow.git"
+    app_dir: /opt/shopflow
+
+  tasks:
+    - name: Clone application repo
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ app_dir }}"
+        version: main
+        force: true
+
+    - name: Copy .env if absent
+      copy:
+        src: ../deploy/.env
+        dest: "{{ app_dir }}/deploy/.env"
+        mode: "0600"
+      when: false  # укажи реальный путь к .env
+
+    - name: Pull and start services
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_dir }}/deploy/compose"
+        pull: always
+        state: present
+        remove_orphans: true
+
+    - name: Wait for products health
+      uri:
+        url: "http://localhost:8001/healthz"
+        status_code: 200
+      register: health
+      until: health.status == 200
+      retries: 30
+      delay: 2

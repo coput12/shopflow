@@ -1,0 +1,5 @@
+provider "yandex" {
+  token     = "CHANGE_ME"
+  cloud_id  = "CHANGE_ME"
+  folder_id = "CHANGE_ME"
+}

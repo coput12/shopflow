@@ -1,0 +1,99 @@
+{{- $root := . }}
+{{- $cfg := .Values.config }}
+{{- range $svc := keys .Values.services }}
+{{- $enabled := index $root.Values.services $svc }}
+{{- if $enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $svc }}
+  namespace: {{ $root.Release.Namespace }}
+  labels:
+    app: {{ $svc }}
+    {{- include "shopflow.labels" $root | nindent 4 }}
+spec:
+  replicas: {{ $root.Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ $svc }}
+  template:
+    metadata:
+      labels:
+        app: {{ $svc }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+    spec:
+      containers:
+        - name: {{ $svc }}
+          image: {{ include "shopflow.image" (merge (deepCopy $root) (dict "service" $svc)) }}
+          imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8000
+          env:
+            {{- if eq $svc "products" }}
+            - { name: PRODUCTS_DATABASE_URL, value: {{ $cfg.productsDatabaseUrl | quote }} }
+            - { name: PRODUCTS_REDIS_URL, value: {{ $cfg.productsRedisUrl | quote }} }
+            {{- else if eq $svc "orders" }}
+            - { name: ORDERS_DATABASE_URL, value: {{ $cfg.ordersDatabaseUrl | quote }} }
+            - { name: ORDERS_RABBITMQ_URL, value: {{ $cfg.rabbitmqUrl | quote }} }
+            {{- else if eq $svc "worker" }}
+            - { name: WORKER_RABBITMQ_URL, value: {{ $cfg.rabbitmqUrl | quote }} }
+            - { name: WORKER_REDIS_URL, value: {{ $cfg.workerRedisUrl | quote }} }
+            {{- end }}
+          resources:
+            {{- toYaml $root.Values.resources | nindent 12 }}
+          {{- if ne $svc "worker" }}
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8000 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8000 }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $svc }}
+  namespace: {{ $root.Release.Namespace }}
+spec:
+  type: {{ $root.Values.service.type }}
+  selector:
+    app: {{ $svc }}
+  ports:
+    - port: {{ $root.Values.service.port }}
+      targetPort: 8000
+{{- if and $root.Values.autoscaling.enabled (ne $svc "worker") }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $svc }}
+  namespace: {{ $root.Release.Namespace }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $svc }}
+  minReplicas: {{ $root.Values.autoscaling.minReplicas }}
+  maxReplicas: {{ $root.Values.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $root.Values.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ $root.Values.autoscaling.targetMemoryUtilizationPercentage }}
+{{- end }}
+{{- end }}
+{{- end }}

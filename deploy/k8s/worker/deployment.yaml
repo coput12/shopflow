@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: shopflow
+  labels:
+    app: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+    spec:
+      containers:
+        - name: worker
+          image: ghcr.io/your_github_username/shopflow-worker:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: shopflow-config
+          resources:
+            requests: { cpu: 100m, memory: 64Mi }
+            limits: { cpu: 300m, memory: 128Mi }

@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Env / secrets
+.env
+*.env
+!deploy/.env.example
+*.pem
+*.key
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/.terraform.lock.hcl
+
+# Ansible
+ansible/*.retry
+ansible/inventory/hosts.ini
+
+# K8s / Helm
+k8s/secrets/*.yaml
+!k8s/secrets/*.example
+helm/**/charts/
+helm/**/*.tgz
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log

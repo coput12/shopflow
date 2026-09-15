@@ -1,0 +1,15 @@
+apiVersion: v2
+name: shopflow
+description: ShopFlow microservices platform (products, orders, worker)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+keywords:
+  - microservices
+  - fastapi
+  - rabbitmq
+  - k8s
+
+maintainers:
+  - name: Ivanov Danil

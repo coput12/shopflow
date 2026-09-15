@@ -1,0 +1,104 @@
+name: shopflow
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-shopflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shopflow}
+      POSTGRES_DB: ${POSTGRES_DB:-shopflow}
+      POSTGRES_MULTIPLE_DATABASES: shopflow_orders
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-shopflow}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-guest}
+    ports:
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  products:
+    build: ../../app/products
+    image: ${IMAGE_REGISTRY}/${IMAGE_ORG}/shopflow-products:${IMAGE_TAG:-latest}
+    environment:
+      PRODUCTS_DATABASE_URL: ${PRODUCTS_DATABASE_URL}
+      PRODUCTS_REDIS_URL: ${PRODUCTS_REDIS_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8001:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz',timeout=2).status==200 else 1)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  orders:
+    build: ../../app/orders
+    image: ${IMAGE_REGISTRY}/${IMAGE_ORG}/shopflow-orders:${IMAGE_TAG:-latest}
+    environment:
+      ORDERS_DATABASE_URL: ${ORDERS_DATABASE_URL}
+      ORDERS_RABBITMQ_URL: ${ORDERS_RABBITMQ_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "8002:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz',timeout=2).status==200 else 1)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  worker:
+    build: ../../app/worker
+    image: ${IMAGE_REGISTRY}/${IMAGE_ORG}/shopflow-worker:${IMAGE_TAG:-latest}
+    environment:
+      WORKER_RABBITMQ_URL: ${WORKER_RABBITMQ_URL}
+      WORKER_REDIS_URL: ${WORKER_REDIS_URL}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
