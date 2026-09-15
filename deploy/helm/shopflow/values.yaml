@@ -1,8 +1,8 @@
-replicaCount: 2
+﻿replicaCount: 2
 
 image:
   registry: ghcr.io
-  org: your_github_username
+  org: coput12
   tag: latest
   pullPolicy: IfNotPresent
 

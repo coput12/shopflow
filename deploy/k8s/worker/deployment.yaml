@@ -1,4 +1,4 @@
-apiVersion: apps/v1
+﻿apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: worker
@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: worker
-          image: ghcr.io/your_github_username/shopflow-worker:latest
+          image: ghcr.io/coput12/shopflow-worker:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000

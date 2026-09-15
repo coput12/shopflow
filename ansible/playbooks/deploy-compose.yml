@@ -1,13 +1,13 @@
----
-# Деплой приложения docker-compose'ом.
-# Перед запуском: скопируй deploy/.env на VM или отдай через ansible-vault.
+﻿---
+# Р”РµРїР»РѕР№ РїСЂРёР»РѕР¶РµРЅРёСЏ docker-compose'РѕРј.
+# РџРµСЂРµРґ Р·Р°РїСѓСЃРєРѕРј: СЃРєРѕРїРёСЂСѓР№ deploy/.env РЅР° VM РёР»Рё РѕС‚РґР°Р№ С‡РµСЂРµР· ansible-vault.
 - name: Deploy ShopFlow with docker compose
   hosts: shopflow
   become: false
   gather_facts: false
 
   vars:
-    repo_url: "git@github.com:your_github_username/shopflow.git"
+    repo_url: "git@github.com:coput12/shopflow.git"
     app_dir: /opt/shopflow
 
   tasks:
@@ -23,7 +23,7 @@
         src: ../deploy/.env
         dest: "{{ app_dir }}/deploy/.env"
         mode: "0600"
-      when: false  # укажи реальный путь к .env
+      when: false  # СѓРєР°Р¶Рё СЂРµР°Р»СЊРЅС‹Р№ РїСѓС‚СЊ Рє .env
 
     - name: Pull and start services
       community.docker.docker_compose_v2:

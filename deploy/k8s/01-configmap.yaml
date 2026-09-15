@@ -1,16 +1,16 @@
-apiVersion: v1
+﻿apiVersion: v1
 kind: ConfigMap
 metadata:
   name: shopflow-config
   namespace: shopflow
 data:
-  # Пример: тут НЕ должно быть секретов. Только конфигурация.
+  # РџСЂРёРјРµСЂ: С‚СѓС‚ РќР• РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ СЃРµРєСЂРµС‚РѕРІ. РўРѕР»СЊРєРѕ РєРѕРЅС„РёРіСѓСЂР°С†РёСЏ.
   PRODUCTS_DATABASE_URL: "postgresql://shopflow:CHANGE_ME@postgres:5432/shopflow"
   PRODUCTS_REDIS_URL: "redis://redis:6379/0"
   ORDERS_DATABASE_URL: "postgresql://shopflow:CHANGE_ME@postgres:5432/shopflow_orders"
   ORDERS_RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672/"
   WORKER_RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672/"
   WORKER_REDIS_URL: "redis://redis:6379/1"
-  PRODUCTS_IMAGE: "ghcr.io/your_github_username/shopflow-products:latest"
-  ORDERS_IMAGE: "ghcr.io/your_github_username/shopflow-orders:latest"
-  WORKER_IMAGE: "ghcr.io/your_github_username/shopflow-worker:latest"
+  PRODUCTS_IMAGE: "ghcr.io/coput12/shopflow-products:latest"
+  ORDERS_IMAGE: "ghcr.io/coput12/shopflow-orders:latest"
+  WORKER_IMAGE: "ghcr.io/coput12/shopflow-worker:latest"
